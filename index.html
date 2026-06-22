@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>可视化报告修改 — 白里挑一</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="phone" id="app">
+
+  <div class="status-bar">
+    <span class="time">2:57</span>
+    <span>6/18 周四</span>
+    <span style="color:var(--accent-green);">📶 🔋 15%</span>
+  </div>
+
+  <div class="header">
+    <button class="back-btn" id="backBtn">‹</button>
+    <span class="title">可视化报告修改</span>
+    <span class="badge" id="diseaseBadge">3个</span>
+    <button class="btn-generate" id="btnGenerate">生成报告</button>
+  </div>
+
+  <div class="patient-bar">
+    <span class="name">张*明 · 男 34岁</span>
+    <span>病历号 YL20240622</span>
+  </div>
+
+  <div class="main-content">
+
+    <div class="photo-area" id="photoWrap">
+      <div class="photo-bg" id="photoBg">
+        <div id="teeth-layer"></div>
+        <div id="marker-layer"></div>
+        <div class="photo-hint" id="photoHint">点击牙齿进行操作</div>
+      </div>
+    </div>
+
+    <div class="status-row">
+      <span id="statusText">💡 点击牙齿选择牙位</span>
+    </div>
+
+    <div class="disease-bar" id="diseaseBar"></div>
+
+    <div class="thumb-strip" id="thumbStrip"></div>
+
+    <div class="disease-cards" id="diseaseCards"></div>
+
+  </div>
+
+  <div class="action-panel">
+    <div class="row">
+      <span class="chip active" data-act="add">➕ 新增</span>
+      <span class="chip" data-act="mod">✎ 修改</span>
+      <span class="chip danger" data-act="del">🗑 移除</span>
+      <button class="btn-reset" id="btnReset" style="margin-left:auto;">↺</button>
+    </div>
+    <div class="row" id="diseaseRow">
+      <select class="form-select" id="selDisease"></select>
+      <select class="form-select" id="selSeverity"></select>
+      <input class="form-input" id="inpNote" placeholder="备注（可选）">
+    </div>
+    <div class="row">
+      <span class="info-text" id="infoText"></span>
+      <button class="btn-apply" id="btnApply" disabled>请先选择牙齿</button>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+</div>
+
+<script src="js/data.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

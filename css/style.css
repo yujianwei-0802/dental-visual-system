@@ -1,0 +1,525 @@
+/* ============================================
+   可视化修改疾病 - Dental Visual System
+   白里挑一（杭州）医疗科技有限公司
+   ============================================ */
+
+:root {
+  --bg-primary: #2D2D2D;
+  --bg-card: #3A3A3A;
+  --bg-bar: #1E1E1E;
+  --border: #404040;
+  --text-primary: #FFFFFF;
+  --text-secondary: #999999;
+  --accent-gold: #C8A020;
+  --accent-green: #55AA00;
+  --accent-red: #DD0000;
+  --tooth-default: rgba(255,248,240,0.2);
+  --tooth-border: rgba(255,255,255,0.12);
+  --tooth-selected: rgba(200,160,32,0.55);
+  --tooth-diseased: rgba(220,0,0,0.45);
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+  --radius-full: 28px;
+  --font-stack: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  font-family: var(--font-stack);
+  background: #1a1a1a;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: 20px;
+}
+
+/* ===== Phone Frame ===== */
+.phone {
+  width: 375px;
+  height: 780px;
+  background: var(--bg-primary);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  box-shadow: 0 12px 48px rgba(0,0,0,0.6);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+/* ===== Status Bar ===== */
+.status-bar {
+  height: 36px;
+  background: var(--bg-bar);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-primary);
+  flex-shrink: 0;
+}
+.status-bar .time { font-size: 13px; }
+
+/* ===== Header ===== */
+.header {
+  height: 44px;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--border);
+}
+.header .back-btn {
+  color: var(--accent-gold);
+  font-size: 22px;
+  cursor: pointer;
+  line-height: 1;
+  background: none;
+  border: none;
+  flex-shrink: 0;
+}
+.header .title { flex: 1; font-size: 13px; }
+.header .badge {
+  background: var(--accent-red);
+  color: #fff;
+  font-size: 11px;
+  padding: 3px 10px;
+  border-radius: 10px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.btn-generate {
+  background: var(--accent-green);
+  color: #000;
+  border: none;
+  padding: 5px 12px;
+  border-radius: 14px;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  flex-shrink: 0;
+  font-family: var(--font-stack);
+}
+.btn-generate:hover { opacity: 0.9; }
+
+/* ===== Patient Bar ===== */
+.patient-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 14px;
+  font-size: 10px;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.patient-bar .name {
+  color: var(--text-primary);
+  font-weight: 600;
+  font-size: 11px;
+}
+
+/* ===== Main Content ===== */
+.main-content {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ===== Photo Area ===== */
+.photo-area {
+  position: relative;
+  margin: 10px 12px 4px;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  border: 2px solid var(--border);
+  aspect-ratio: 4/3;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+.photo-area.has-selection { border-color: var(--accent-gold); }
+.photo-bg {
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(ellipse at 50% 50%, #333 0%, #2a2a2a 60%, var(--bg-bar) 100%);
+  position: relative;
+}
+
+/* Tooth Dot */
+.tooth-dot {
+  position: absolute;
+  width: 24px;
+  height: 28px;
+  border-radius: 3px 3px 4px 4px;
+  background: var(--tooth-default);
+  border: 1.5px solid var(--tooth-border);
+  cursor: pointer;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+  transition: all 0.15s ease;
+}
+.tooth-dot:hover {
+  background: rgba(255,248,240,0.4);
+  border-color: rgba(255,255,255,0.35);
+}
+.tooth-dot.selected {
+  background: var(--tooth-selected) !important;
+  border-color: var(--accent-gold) !important;
+  box-shadow: 0 0 14px rgba(200,160,32,0.55);
+  z-index: 6;
+}
+.tooth-dot.diseased {
+  background: var(--tooth-diseased) !important;
+  border-color: var(--accent-red) !important;
+}
+
+/* Disease Marker */
+.marker {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  background: var(--accent-red);
+  border: 2px solid #fff;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 5;
+  pointer-events: none;
+  box-shadow: 0 0 8px rgba(220,0,0,0.5);
+  animation: pulse 2.5s infinite;
+}
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 0 6px rgba(220,0,0,0.4); }
+  50% { box-shadow: 0 0 14px rgba(220,0,0,0.8); }
+}
+.marker .tag {
+  position: absolute;
+  top: -18px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0,0,0,0.85);
+  color: #fff;
+  font-size: 8px;
+  padding: 2px 5px;
+  border-radius: 4px;
+  white-space: nowrap;
+  border: 1px solid var(--accent-red);
+}
+
+/* Hint */
+.photo-hint {
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: rgba(255,255,255,0.35);
+  font-size: 10px;
+  pointer-events: none;
+  transition: all 0.2s;
+}
+
+/* ===== Status Row ===== */
+.status-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 10px;
+  padding: 4px 14px;
+  flex-shrink: 0;
+  min-height: 20px;
+  color: var(--text-secondary);
+}
+.status-row b { color: var(--accent-gold); font-weight: 600; }
+
+/* ===== Disease Cards ===== */
+.disease-cards {
+  padding: 6px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.disease-card {
+  display: flex;
+  align-items: center;
+  padding: 8px 10px;
+  background: rgba(220,160,160,0.08);
+  border: 1px solid rgba(220,160,160,0.15);
+  border-radius: var(--radius-md);
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.disease-card:hover { background: rgba(220,160,160,0.14); }
+.disease-card.selected {
+  background: rgba(200,160,32,0.12);
+  border-color: var(--accent-gold);
+}
+.disease-card .dc-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--accent-red);
+  flex-shrink: 0;
+}
+.disease-card .dc-info { flex: 1; font-size: 10px; color: var(--text-primary); }
+.disease-card .dc-info .dc-tooth { color: var(--accent-gold); font-weight: 700; }
+.disease-card .dc-info .dc-sev { color: var(--text-secondary); font-size: 9px; margin-left: 4px; }
+.disease-card .dc-info .dc-note { color: var(--text-secondary); font-size: 9px; display: block; }
+.disease-card .dc-modify {
+  border: 1px solid var(--accent-gold); color: var(--accent-gold);
+  background: transparent; padding: 3px 8px; border-radius: 10px;
+  font-size: 9px; font-weight: 600; cursor: pointer; flex-shrink: 0;
+  font-family: var(--font-stack);
+}
+.disease-card .dc-modify:hover { background: rgba(200,160,32,0.12); }
+
+/* ===== Disease Tags Bar ===== */
+.disease-bar {
+  display: flex;
+  gap: 6px;
+  padding: 4px 12px;
+  overflow-x: auto;
+  flex-shrink: 0;
+  align-items: center;
+  min-height: 28px;
+}
+.disease-bar .label {
+  font-size: 9px;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+  margin-right: 2px;
+}
+.disease-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 10px;
+  font-weight: 600;
+  background: rgba(200,160,32,0.12);
+  color: var(--accent-gold);
+  border: 1px solid rgba(200,160,32,0.3);
+  flex-shrink: 0;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+.disease-tag:hover { background: rgba(200,160,32,0.2); }
+.disease-tag .del {
+  color: var(--accent-red);
+  font-weight: 700;
+  margin-left: 2px;
+  cursor: pointer;
+  font-size: 12px;
+}
+.disease-tag .del:hover { color: #ff3333; }
+.disease-tag.empty {
+  background: transparent;
+  color: var(--text-secondary);
+  border-style: dashed;
+  font-weight: 400;
+  cursor: default;
+}
+
+/* ===== Thumbnail Strip ===== */
+.thumb-strip {
+  display: flex;
+  gap: 6px;
+  padding: 6px 12px;
+  overflow-x: auto;
+  flex-shrink: 0;
+}
+.thumb {
+  width: 50px;
+  height: 38px;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+  border: 2px solid var(--border);
+  cursor: pointer;
+  overflow: hidden;
+  position: relative;
+  transition: border-color 0.15s;
+}
+.thumb.active { border-color: var(--accent-gold); }
+.thumb .t-bg {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(180deg, #e8c8b8 0%, #d8a898 35%, #f0e0d0 40%, #e0c0b0 50%, #d0a090 60%, #c09080 100%);
+}
+.thumb .t-num {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 6.5px;
+  color: #000;
+  background: rgba(255,255,255,0.75);
+  padding: 1px 0;
+}
+.thumb .t-dot {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 6px;
+  height: 6px;
+  background: var(--accent-red);
+  border-radius: 50%;
+}
+
+/* ===== Action Panel ===== */
+.action-panel {
+  background: var(--bg-card);
+  border-top: 1px solid var(--border);
+  padding: 10px 14px;
+  flex-shrink: 0;
+}
+.action-panel .row {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 6px;
+  align-items: center;
+}
+.action-panel .row:last-child { margin-bottom: 0; }
+
+/* Chips */
+.chip {
+  padding: 5px 12px;
+  border-radius: 14px;
+  font-size: 11px;
+  font-weight: 600;
+  border: 1.5px solid var(--border);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+.chip.active {
+  background: var(--accent-gold);
+  color: #000;
+  border-color: var(--accent-gold);
+}
+.chip.danger { border-color: var(--accent-red); color: var(--accent-red); }
+.chip.danger.active { background: var(--accent-red); color: #fff; }
+
+/* Form Elements */
+.form-select {
+  background: var(--bg-primary);
+  border: 1.5px solid var(--border);
+  color: var(--text-primary);
+  padding: 5px 8px;
+  border-radius: 8px;
+  font-size: 10px;
+  cursor: pointer;
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-stack);
+  -webkit-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='6'%3E%3Cpath d='M0 0l4 6 4-6z' fill='%23999'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  padding-right: 24px;
+}
+.form-select option {
+  background: var(--bg-card);
+  color: var(--text-primary);
+}
+.form-select:focus { border-color: var(--accent-gold); outline: none; }
+.form-select:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.form-input {
+  background: transparent;
+  border: 1.5px solid var(--border);
+  color: var(--text-primary);
+  padding: 5px 8px;
+  border-radius: 8px;
+  font-size: 10px;
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-stack);
+}
+.form-input:focus { border-color: var(--accent-gold); outline: none; }
+.form-input::placeholder { color: var(--text-secondary); }
+
+/* Buttons */
+.btn-apply {
+  background: var(--accent-green);
+  color: #000;
+  border: none;
+  padding: 8px 20px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.15s;
+  font-family: var(--font-stack);
+}
+.btn-apply:disabled {
+  background: #333;
+  color: #666;
+  cursor: not-allowed;
+}
+.btn-reset {
+  background: transparent;
+  border: 1.5px solid var(--border);
+  color: var(--text-secondary);
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 11px;
+  cursor: pointer;
+  flex-shrink: 0;
+  font-family: var(--font-stack);
+}
+.btn-reset:hover { border-color: #666; color: #ccc; }
+
+/* Info text */
+.info-text {
+  font-size: 9px;
+  color: var(--text-secondary);
+  flex: 1;
+}
+
+/* Row disabled state */
+.row.disabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+/* ===== Toast ===== */
+.toast {
+  position: absolute;
+  bottom: 120px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  padding: 8px 20px;
+  border-radius: 20px;
+  font-size: 11px;
+  border: 1px solid var(--border);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 100;
+  white-space: nowrap;
+  transition: opacity 0.25s;
+}
+.toast.show { opacity: 1; }
+.toast.success { border-color: var(--accent-green); color: #88cc44; }
+
+/* ===== Scrollbar ===== */
+::-webkit-scrollbar { height: 3px; width: 3px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
