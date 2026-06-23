@@ -13,7 +13,7 @@
   <div class="status-bar">
     <span class="time">2:57</span>
     <span>6/18 周四</span>
-    <span style="color:var(--accent-green);">📶 🔋 15%</span>
+    <span style="color:var(--ok);">📶 🔋 15%</span>
   </div>
 
   <div class="header">
@@ -30,41 +30,39 @@
 
   <div class="main-content">
 
-    <div class="photo-area" id="photoWrap">
+    <div class="photo-area section-card" id="photoWrap">
       <div class="photo-bg" id="photoBg">
-        <div id="teeth-layer"></div>
         <div id="marker-layer"></div>
-        <div class="photo-hint" id="photoHint">点击牙齿进行操作</div>
+        <div class="photo-hint" id="photoHint">👆 点击照片上的牙齿进行标记</div>
       </div>
     </div>
 
     <div class="status-row">
-      <span id="statusText">💡 点击牙齿选择牙位</span>
+      <span id="statusText">👆 点击照片上的牙齿进行标记</span>
     </div>
 
     <div class="disease-bar" id="diseaseBar"></div>
-
     <div class="thumb-strip" id="thumbStrip"></div>
-
-    <div class="disease-cards" id="diseaseCards"></div>
+    <div class="disease-cards section-card" id="diseaseCards" style="margin:4px 12px;"></div>
 
   </div>
 
   <div class="action-panel">
     <div class="row">
-      <span class="chip active" data-act="add">➕ 新增</span>
-      <span class="chip" data-act="mod">✎ 修改</span>
-      <span class="chip danger" data-act="del">🗑 移除</span>
-      <button class="btn-reset" id="btnReset" style="margin-left:auto;">↺</button>
+      <span class="info-text" id="infoText">点击照片标记位置 → 选择牙位 → 选择疾病 → 确认</span>
+      <button class="btn-reset" id="btnReset">↺ 重置</button>
     </div>
-    <div class="row" id="diseaseRow">
+    <div class="row">
+      <select class="form-select" id="selTooth" style="max-width:90px;">
+        <option value="">选择牙位</option>
+      </select>
       <select class="form-select" id="selDisease"></select>
       <select class="form-select" id="selSeverity"></select>
       <input class="form-input" id="inpNote" placeholder="备注（可选）">
     </div>
     <div class="row">
-      <span class="info-text" id="infoText"></span>
-      <button class="btn-apply" id="btnApply" disabled>请先选择牙齿</button>
+      <button class="btn-delete" id="btnDelete" style="display:none;">🗑 删除</button>
+      <button class="btn-apply" id="btnApply" disabled>请先点击照片标记位置</button>
     </div>
   </div>
 
