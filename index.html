@@ -275,6 +275,10 @@
   .tooth-btn.has-disease.selected {
     border-color: var(--accent); box-shadow: none;
   }
+  .tooth-btn.disabled {
+    opacity: .18; pointer-events: none;
+    border-color: transparent; background: transparent;
+  }
 
   @media (min-width: 769px) {
     .tooth-popup { min-width: 480px; left: 50%; transform: translateX(-50%); }
@@ -534,14 +538,14 @@
   'use strict';
 
   const PHOTOS = [
-    { id:0, name:'张大嘴巴上颌面', thumb:'img/photo-P1.jpg' },
-    { id:1, name:'双颌微张左颊侧', thumb:'img/photo-P2.jpg' },
-    { id:2, name:'双颌微张正视图', thumb:'img/photo-P3.jpg' },
-    { id:3, name:'双颌微张右颊侧', thumb:'img/photo-P4.jpg' },
-    { id:4, name:'自然咬合左颊侧', thumb:'img/photo-P5.jpg' },
-    { id:5, name:'自然咬合正视图', thumb:'img/photo-P6.jpg' },
-    { id:6, name:'自然咬合右颊侧', thumb:'img/photo-P7.jpg' },
-    { id:7, name:'张大嘴巴下颌面', thumb:'img/photo-P8.jpg' },
+    { id:0, name:'张大嘴巴上颌面', thumb:'img/photo-P1.jpg', teeth:['18','17','16','15','14','13','12','11','21','22','23','24'] },
+    { id:1, name:'双颌微张左颊侧', thumb:'img/photo-P2.jpg', teeth:['18','17','16','15','14','13','12','11','21','22','23','48','47','46','45','44','43','42','41','31','32'] },
+    { id:2, name:'双颌微张正视图', thumb:'img/photo-P3.jpg', teeth:['17','16','15','14','13','12','11','21','22','23','24','47','46','45','44','43','42','41','31','32','33'] },
+    { id:3, name:'双颌微张右颊侧', thumb:'img/photo-P4.jpg', teeth:['12','13','14','15','16','17','18','21','22','23','24','42','43','44','45','46','47','48','31','32','33'] },
+    { id:4, name:'自然咬合左颊侧', thumb:'img/photo-P5.jpg', teeth:['18','17','16','15','14','13','12','11','21','22','48','47','46','45','44','43','42','41','31'] },
+    { id:5, name:'自然咬合正视图', thumb:'img/photo-P6.jpg', teeth:['17','16','15','14','13','12','11','21','22','23','24','47','46','45','44','43','42','41','31','32','33'] },
+    { id:6, name:'自然咬合右颊侧', thumb:'img/photo-P7.jpg', teeth:['12','13','14','15','16','17','18','21','22','23','24','42','43','44','45','46','47','48','31','32','33'] },
+    { id:7, name:'张大嘴巴下颌面', thumb:'img/photo-P8.jpg', teeth:['48','47','46','45','44','43','42','41','31','32','33','34'] },
   ];
 
   const ALL_TEETH = ['18','17','16','15','14','13','12','11','21','22','23','24','25','26','27','28','31','32','33','34','35','36','37','38','41','42','43','44','45','46','47','48'];
@@ -653,10 +657,13 @@
         dom.toothPopup.style.left = left + 'px';
         dom.toothPopup.style.transform = 'none';
         dom.toothPopup.classList.add('show');
-        // 同步选中状态和疾病标记
+        // 同步选中状态、疾病标记和可见性
+        const visibleTeeth = PHOTOS[state.photoIdx].teeth;
         const cur = dom.epTooth.value;
         dom.toothPopup.querySelectorAll('.tooth-btn').forEach(b => {
           const t = b.dataset.tooth;
+          const visible = visibleTeeth.includes(t);
+          b.classList.toggle('disabled', !visible);
           b.classList.toggle('selected', t === cur);
           b.classList.toggle('has-disease', !!state.diseases[t]);
         });
