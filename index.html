@@ -1,0 +1,1212 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>修改报告 — 白里挑一</title>
+<style>
+  :root {
+    --bg: #3d3933;
+    --panel: #5a5350;
+    --panel2: #4d4743;
+    --stroke: rgba(255,255,255,.10);
+    --text: rgba(255,255,255,.94);
+    --muted: rgba(255,255,255,.60);
+    --accent: #d5df1d;
+    --accent2: #c4cf1c;
+    --danger: #eb5c58;
+    --ok: #83d68a;
+    --shadow: 0 14px 36px rgba(0,0,0,.22);
+    --radius: 18px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    min-height: 100%;
+    background: #2d2925;
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+    color: var(--text);
+    overflow: hidden;
+  }
+  button, select, input { font: inherit; }
+
+  .app {
+    width: 100vw; height: 100vh;
+    background:
+      radial-gradient(1400px 900px at 50% -100px, rgba(255,255,255,.06), transparent 55%),
+      linear-gradient(180deg, #48423d 0%, #403b36 100%);
+  }
+  .phone {
+    width: min(100vw, 900px); height: 100vh;
+    margin: 0 auto; position: relative;
+    background: linear-gradient(180deg, rgba(255,255,255,.01), rgba(255,255,255,0));
+    box-shadow: 0 0 0 1px rgba(255,255,255,.05), 0 26px 80px rgba(0,0,0,.42);
+    overflow: hidden;
+  }
+
+  /* ====== 状态栏 ====== */
+  .status {
+    height: 28px; padding: 6px 14px 0; display: flex;
+    justify-content: space-between; align-items: center;
+    color: rgba(255,255,255,.78); font-size: 12px; user-select: none;
+  }
+  .dot-status {
+    display: inline-block; width: 11px; height: 11px;
+    background: var(--accent); border-radius: 50%;
+    box-shadow: 0 0 0 3px rgba(213,223,29,.12);
+    margin-left: 6px; vertical-align: -1px;
+  }
+
+  /* ====== 头部导航 ====== */
+  .header {
+    height: 56px; display: flex; align-items: center;
+    justify-content: center; position: relative; padding: 0 14px;
+  }
+  .back {
+    position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+    width: 32px; height: 32px; border: 0; background: transparent;
+    color: var(--accent); font-size: 28px; line-height: 1; cursor: pointer;
+  }
+  .title {
+    font-size: 18px; font-weight: 600; letter-spacing: .2px;
+    color: rgba(255,255,255,.96);
+  }
+  .primary-btn {
+    position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+    border: 0; background: var(--accent); color: #2f2c1b;
+    border-radius: 999px; padding: 8px 14px;
+    font-weight: 800; cursor: pointer;
+  }
+  .nav-count-badge {
+    position: absolute; right: 100px; top: 50%; transform: translateY(-50%);
+    background: #848d22; color: #eff39d; font-size: 12px;
+    padding: 2px 8px; border-radius: 8px; font-weight: 800;
+  }
+
+  /* ====== 患者信息 ====== */
+  .patient-bar {
+    height: 36px; display: flex; align-items: center;
+    justify-content: space-between; padding: 0 14px;
+    font-size: 12px; color: var(--muted);
+  }
+  .patient-bar .name { color: var(--text); font-weight: 600; }
+
+  /* ====== 内容区 ====== */
+  .content {
+    height: calc(100vh - 120px); overflow: auto;
+    padding: 4px 10px 14px; scrollbar-width: none;
+  }
+  .content::-webkit-scrollbar { width: 0; height: 0; }
+
+  /* ====== Section 卡片 ====== */
+  .section {
+    background: rgba(255,255,255,.04);
+    border: 1px solid var(--stroke);
+    border-radius: 16px;
+    box-shadow: var(--shadow);
+    overflow: hidden; margin-bottom: 12px;
+  }
+  .section-hd {
+    height: 54px; padding: 0 14px; display: flex;
+    align-items: center; gap: 10px; cursor: pointer; user-select: none;
+  }
+  .section-title {
+    display: flex; align-items: center; gap: 8px;
+    font-weight: 700; color: rgba(255,255,255,.95);
+  }
+  .badge {
+    background: #848d22; color: #eff39d; font-size: 12px;
+    padding: 2px 8px; border-radius: 8px; font-weight: 800;
+  }
+  .caret {
+    margin-left: auto; color: rgba(255,255,255,.50);
+    font-size: 16px; transition: transform .2s ease;
+  }
+  .section.collapsed .caret { transform: rotate(-90deg); }
+  .section-body {
+    border-top: 1px solid rgba(255,255,255,.07); padding: 10px;
+  }
+  .section.collapsed .section-body { display: none; }
+
+  /* ====== 照片预览网格 ====== */
+  .preview-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+  }
+  .photo-card {
+    position: relative; border-radius: 12px; overflow: hidden;
+    background: #efefef; height: 100px;
+    box-shadow: 0 10px 24px rgba(0,0,0,.18); cursor: pointer;
+    border: 2px solid transparent;
+  }
+  .photo-card.active { border-color: rgba(213,223,29,.95); }
+  .photo-card img {
+    width: 100%; height: 100%; object-fit: cover;
+  }
+  .photo-label {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    padding: 10px 6px 6px; font-size: 11px; text-align: center;
+    color: #fff;
+    background: linear-gradient(180deg, transparent, rgba(0,0,0,.68));
+  }
+  .photo-dot {
+    position: absolute; top: 6px; right: 6px;
+    width: 8px; height: 8px; background: var(--danger);
+    border-radius: 50%; box-shadow: 0 0 0 2px rgba(235,92,88,.25);
+  }
+
+  /* ====== 照片大图区 ====== */
+  .photo-area {
+    width: 100%; height: 420px; position: relative;
+    background-size: cover; background-position: center;
+    background-color: #333; cursor: crosshair;
+    border-radius: 12px; overflow: hidden;
+    border: 1px solid rgba(255,255,255,.1);
+  }
+  .photo-hint {
+    position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%);
+    background: rgba(0,0,0,.65); color: #fff; font-size: 11px;
+    padding: 6px 14px; border-radius: 999px; pointer-events: none;
+    white-space: nowrap;
+  }
+  .marker {
+    position: absolute; width: 20px; height: 20px;
+    border-radius: 50%; border: 3px solid #fff;
+    box-shadow: 0 0 0 2px var(--danger), 0 2px 8px rgba(0,0,0,.4);
+    cursor: pointer; transform: translate(-50%, -50%);
+    transition: transform .12s; z-index: 2;
+  }
+  .marker.editing {
+    box-shadow: 0 0 0 2px var(--accent), 0 2px 8px rgba(213,223,29,.5);
+    transform: translate(-50%, -50%) scale(1.25);
+  }
+  .marker.new {
+    box-shadow: 0 0 0 2px var(--accent), 0 2px 8px rgba(213,223,29,.5);
+  }
+  .marker-tag {
+    position: absolute; top: -26px; left: 50%; transform: translateX(-50%);
+    font-size: 10px; white-space: nowrap; padding: 3px 8px;
+    border-radius: 999px; pointer-events: none; display: none;
+    background: var(--danger); color: #fff;
+  }
+  .marker.editing .marker-tag, .marker.new .marker-tag { display: block; }
+  .marker.editing .marker-tag { background: var(--accent); color: #2f2c1b; }
+  .marker.new .marker-tag { background: var(--accent); color: #2f2c1b; }
+
+  /* ====== 编辑面板 ====== */
+  .edit-panel {
+    display: none; padding: 10px; gap: 8px; flex-wrap: wrap; align-items: center;
+    border-top: 1px solid rgba(255,255,255,.07);
+  }
+  .edit-panel.show { display: flex; }
+  .ep-select, .ep-input {
+    height: 38px; border-radius: 10px;
+    border: 1px solid rgba(255,255,255,.12);
+    background: rgba(255,255,255,.06);
+    color: #fff; padding: 0 10px; outline: none;
+    font-size: 13px;
+  }
+  .ep-select option {
+    background: #3d3933; color: #fff;
+  }
+  .ep-input { width: 130px; }
+  .ep-input::placeholder { color: rgba(255,255,255,.30); }
+  .ep-btn {
+    height: 40px; padding: 0 18px; border: none; border-radius: 12px;
+    font-size: 13px; cursor: pointer; font-weight: 800;
+    border: 1px solid rgba(255,255,255,.12);
+  }
+  .ep-btn-save {
+    background: var(--accent); color: #2f2c1b; border-color: transparent;
+  }
+  .ep-btn-save:disabled {
+    background: rgba(255,255,255,.03); color: rgba(255,255,255,.25);
+    border-color: rgba(255,255,255,.08); cursor: default;
+  }
+  .ep-btn-del {
+    background: rgba(235,92,88,.12); color: #ffb2ae;
+    border-color: rgba(235,92,88,.22);
+  }
+  .ep-btn-batch {
+    background: rgba(255,255,255,.03); color: rgba(255,255,255,.55);
+    border: 1px solid rgba(255,255,255,.12);
+  }
+  .ep-btn-batch.active {
+    background: rgba(213,223,29,.15); color: var(--accent);
+    border-color: rgba(213,223,29,.35);
+  }
+
+  /* ====== 牙位选择器 ====== */
+  .ep-tooth-wrap { position: relative; }
+  .ep-tooth-trig {
+    display: flex; align-items: center; justify-content: space-between;
+    cursor: pointer; user-select: none;
+  }
+  .tooth-popup {
+    display: none; position: fixed;
+    left: 50%; top: 50%; transform: translate(-50%, -50%);
+    background: var(--panel2); border: 1px solid var(--stroke);
+    border-radius: 12px; padding: 10px; z-index: 99;
+    box-shadow: 0 16px 40px rgba(0,0,0,.45);
+    min-width: 380px; max-width: calc(100vw - 16px);
+  }
+  .tooth-popup.show { display: block; }
+  .tooth-row {
+    display: flex; gap: 3px; justify-content: center; margin-bottom: 4px;
+  }
+  .tooth-row .gap { width: 10px; flex-shrink: 0; }
+  .tooth-btn {
+    width: 30px; height: 30px; border-radius: 6px;
+    border: 1px solid rgba(255,255,255,.15);
+    background: rgba(255,255,255,.04);
+    color: rgba(255,255,255,.60); font-size: 10px;
+    cursor: pointer; display: flex; align-items: center;
+    justify-content: center; font-weight: 600;
+    transition: all .12s;
+  }
+  .tooth-btn:hover { border-color: rgba(255,255,255,.40); color: #fff; }
+  .tooth-btn.selected {
+    background: var(--accent); color: #2f2c1b;
+    border-color: var(--accent);
+  }
+  .tooth-btn.has-disease {
+    border-color: var(--danger);
+    box-shadow: inset 0 0 0 1px rgba(235,92,88,.25);
+  }
+  .tooth-btn.has-disease.selected {
+    border-color: var(--accent); box-shadow: none;
+  }
+
+  @media (min-width: 769px) {
+    .tooth-popup { min-width: 480px; left: 50%; transform: translateX(-50%); }
+    .tooth-btn { width: 34px; height: 34px; font-size: 11px; }
+  }
+
+  /* ====== 疾病组 ====== */
+  .group {
+    background: rgba(255,255,255,.025);
+    border: 1px solid rgba(255,255,255,.07);
+    border-radius: 14px; overflow: hidden; margin-bottom: 10px;
+  }
+  .group-hd {
+    padding: 10px 10px 8px; display: flex; align-items: center;
+    gap: 8px; color: rgba(255,255,255,.94);
+    font-weight: 800; cursor: pointer; user-select: none;
+  }
+  .group-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .group-name { flex: 1; font-size: 15px; }
+  .group-count {
+    font-size: 12px; color: var(--muted);
+    background: rgba(255,255,255,.06); padding: 2px 8px; border-radius: 8px;
+  }
+  .group-arrow {
+    color: rgba(255,255,255,.50); font-size: 16px;
+    transition: transform .2s ease;
+  }
+  .group.collapsed .group-arrow { transform: rotate(-90deg); }
+  .group-body { border-top: 1px solid rgba(255,255,255,.05); }
+  .group.collapsed .group-body { display: none; }
+
+  .disease-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 10px; background: rgba(255,255,255,.015);
+    border-bottom: 1px solid rgba(255,255,255,.04);
+  }
+  .disease-item:last-child { border-bottom: none; }
+  .di-check {
+    width: 20px; height: 20px; border: 2px solid rgba(255,255,255,.22);
+    border-radius: 50%; flex-shrink: 0; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .di-check.checked {
+    background: var(--accent); border-color: var(--accent);
+  }
+  .di-check.checked::after {
+    content: '✓'; color: #2f2c1b; font-size: 12px; font-weight: 700;
+  }
+  .group-check {
+    width: 18px; height: 18px; border: 2px solid rgba(255,255,255,.30);
+    border-radius: 50%; flex-shrink: 0; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .group-check.checked {
+    background: var(--accent); border-color: var(--accent);
+  }
+  .group-check.checked::after {
+    content: '✓'; color: #2f2c1b; font-size: 11px; font-weight: 700;
+  }
+  .group-check.partial {
+    background: rgba(213,223,29,.30); border-color: var(--accent);
+  }
+  .group-check.partial::after {
+    content: '−'; color: #2f2c1b; font-size: 14px; font-weight: 700; line-height: 1;
+  }
+  .di-thumb {
+    width: 52px; height: 38px; border-radius: 8px; flex-shrink: 0;
+    background-size: cover; background-position: center; background-color: #333;
+  }
+  .di-info { flex: 1; min-width: 0; }
+  .di-tooth { font-size: 13px; font-weight: 700; color: var(--text); }
+  .di-meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .di-btn {
+    padding: 8px 14px; border-radius: 999px; font-size: 12px; cursor: pointer;
+    border: none; font-weight: 700; background: none; color: var(--accent);
+  }
+
+  /* ====== 底栏 ====== */
+  .bottombar {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    height: 48px; display: flex; align-items: center; gap: 12px;
+    padding: 0 14px; background: var(--panel2);
+    border-top: 1px solid var(--stroke);
+  }
+  .bb-select-all {
+    font-size: 13px; color: var(--accent); cursor: pointer;
+    background: none; border: none; font-weight: 600;
+  }
+  .bb-count { flex: 1; font-size: 12px; color: var(--muted); }
+  .bb-modify {
+    padding: 8px 14px; border: none; border-radius: 999px;
+    background: rgba(213,223,29,.15); color: var(--accent);
+    font-size: 13px; cursor: pointer; font-weight: 600;
+  }
+  .bb-modify:disabled {
+    background: rgba(255,255,255,.03); color: rgba(255,255,255,.15);
+    cursor: default;
+  }
+  .bb-delete {
+    padding: 8px 18px; border: none; border-radius: 999px;
+    background: var(--danger); color: #fff;
+    font-size: 13px; cursor: pointer; font-weight: 800;
+  }
+  .bb-delete:disabled {
+    background: rgba(255,255,255,.03); color: rgba(255,255,255,.15);
+    cursor: default;
+  }
+
+  /* ====== 弹窗 ====== */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,.55);
+    display: none; align-items: center; justify-content: center; z-index: 100;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal {
+    background: var(--panel2); border: 1px solid var(--stroke);
+    border-radius: 16px; padding: 20px; width: calc(100vw - 32px);
+    max-width: 400px; box-shadow: 0 20px 50px rgba(0,0,0,.5);
+  }
+  .modal-title { font-size: 15px; font-weight: 700; margin-bottom: 14px; color: var(--text); }
+  .modal-row { display: flex; gap: 8px; margin-bottom: 12px; }
+  .modal-select {
+    flex: 1; height: 40px; border-radius: 10px;
+    border: 1px solid rgba(255,255,255,.12);
+    background: rgba(255,255,255,.06); color: #fff;
+    padding: 0 10px; font-size: 13px; outline: none;
+  }
+  .modal-select option { background: #3d3933; color: #fff; }
+  .modal-btn {
+    height: 40px; padding: 0 20px; border: none; border-radius: 12px;
+    font-size: 13px; cursor: pointer; font-weight: 800;
+  }
+  .modal-btn-primary { background: var(--accent); color: #2f2c1b; }
+  .modal-btn-secondary { background: rgba(255,255,255,.06); color: var(--text); border: 1px solid var(--stroke); }
+
+  /* ====== Toast ====== */
+  .toast {
+    position: fixed; top: 60px; left: 50%; transform: translateX(-50%);
+    background: #4a433e; color: #fff; padding: 8px 22px;
+    border-radius: 999px; font-size: 13px; opacity: 0;
+    transition: opacity .3s; z-index: 100; pointer-events: none;
+  }
+  .toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<div class="app">
+<div class="phone">
+
+<div class="status">
+  <span>2:57</span>
+  <span>6/18 周四 <span class="dot-status"></span></span>
+</div>
+
+<div class="header">
+  <button class="back">‹</button>
+  <span class="title">修改报告</span>
+  <span class="nav-count-badge" id="navCount">3个</span>
+  <button class="primary-btn" id="btnGenerate">生成报告</button>
+</div>
+
+<div class="patient-bar">
+  <span class="name">张*明 · 男 34岁</span>
+  <span>病历号 YL20240622</span>
+</div>
+
+<div class="content" id="mainContent">
+
+  <!-- 口内照预览 -->
+  <div class="section" id="photoSection">
+    <div class="section-hd">
+      <span class="section-title">口内照预览</span>
+    </div>
+    <div class="section-body">
+      <div class="preview-grid" id="photoGrid"></div>
+    </div>
+  </div>
+
+  <!-- 照片大图 -->
+  <div class="section" id="photoViewSection">
+    <div class="section-body" style="padding:6px;">
+      <div class="photo-area" id="photoCanvas">
+        <div id="markerLayer"></div>
+        <div class="photo-hint" id="photoHint">点击照片上的牙齿进行标记</div>
+      </div>
+      <!-- 编辑面板 -->
+      <div class="edit-panel" id="editPanel">
+        <div class="ep-tooth-wrap" id="epToothWrap">
+          <button class="ep-select ep-tooth-trig" id="epToothTrig" style="min-width:80px;text-align:left;cursor:pointer;">选择牙位 ▾</button>
+          <div class="tooth-popup" id="toothPopup"></div>
+          <select class="ep-select" id="epTooth" style="display:none;"></select>
+        </div>
+        <select class="ep-select" id="epDisease" style="min-width:80px;"></select>
+        <select class="ep-select" id="epSeverity" style="min-width:70px;">
+          <option value="mild">轻度</option>
+          <option value="moderate" selected>中度</option>
+          <option value="severe">重度</option>
+        </select>
+        <input class="ep-input" id="epNote" placeholder="备注（可选）">
+        <button class="ep-btn ep-btn-batch" id="epBatch" title="批量模式：保存后疾病和严重程度保持不变">🔘 批量</button>
+        <button class="ep-btn ep-btn-del" id="epDelete" style="display:none;">删除</button>
+        <button class="ep-btn ep-btn-save" id="epSave" disabled>请先点击照片标记位置</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 疾病列表 -->
+  <div class="section" id="diseaseSection">
+    <div class="section-hd">
+      <span class="section-title">疾病列表</span>
+      <span class="badge" id="listCount">共3项</span>
+      <span class="caret">▾</span>
+    </div>
+    <div class="section-body" id="diseaseGroups"></div>
+  </div>
+
+</div>
+
+<!-- 底部操作栏 -->
+<div class="bottombar">
+  <button class="bb-select-all" id="btnSelectAll">全选</button>
+  <span class="bb-count" id="bbCount">已选 0 项</span>
+  <button class="bb-modify" id="btnBatchModify" disabled>批量修改</button>
+  <button class="bb-delete" id="btnBatchDelete" disabled>删除</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- 批量修改弹窗 -->
+<div class="modal-overlay" id="modalModify">
+  <div class="modal">
+    <div class="modal-title">批量修改 <span id="modifyCount"></span></div>
+    <div class="modal-row">
+      <select class="modal-select" id="mModDisease">
+        <option value="">保持原疾病</option>
+      </select>
+      <select class="modal-select" id="mModSeverity">
+        <option value="">保持原程度</option>
+        <option value="mild">轻度</option>
+        <option value="moderate">中度</option>
+        <option value="severe">重度</option>
+      </select>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;">
+      <button class="modal-btn modal-btn-secondary" id="btnModCancel">取消</button>
+      <button class="modal-btn modal-btn-primary" id="btnModConfirm">确认修改</button>
+    </div>
+  </div>
+</div>
+
+</div>
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  const PHOTOS = [
+    { id:0, name:'张大嘴巴上颌面', thumb:'img/photo-P1.jpg' },
+    { id:1, name:'双颌微张左颊侧', thumb:'img/photo-P2.jpg' },
+    { id:2, name:'双颌微张正视图', thumb:'img/photo-P3.jpg' },
+    { id:3, name:'双颌微张右颊侧', thumb:'img/photo-P4.jpg' },
+    { id:4, name:'自然咬合左颊侧', thumb:'img/photo-P5.jpg' },
+    { id:5, name:'自然咬合正视图', thumb:'img/photo-P6.jpg' },
+    { id:6, name:'自然咬合右颊侧', thumb:'img/photo-P7.jpg' },
+    { id:7, name:'张大嘴巴下颌面', thumb:'img/photo-P8.jpg' },
+  ];
+
+  const ALL_TEETH = ['18','17','16','15','14','13','12','11','21','22','23','24','25','26','27','28','31','32','33','34','35','36','37','38','41','42','43','44','45','46','47','48'];
+  const DISEASE_TYPES = ['牙龈炎','龋齿','牙列拥挤','牙周炎','牙髓炎','牙隐裂','牙体缺损','牙缺失','其他'];
+
+  const INITIAL = {
+    '16':{disease:'牙龈炎',severity:'moderate',note:'远中牙龈红肿',photoIdx:2,x:24,y:28},
+    '36':{disease:'牙列拥挤',severity:'mild',note:'',photoIdx:2,x:73,y:55},
+    '46':{disease:'牙列拥挤',severity:'mild',note:'',photoIdx:2,x:26,y:53},
+  };
+
+  const DISEASE_COLORS = {
+    '牙龈炎':'#eb5c58','龋齿':'#f5a21b','牙列拥挤':'#eb5c58',
+    '牙周炎':'#e62a2a','牙髓炎':'#eb5c58','牙隐裂':'#eb5c58',
+    '牙体缺损':'#d76aff','牙缺失':'#6f90ff','其他':'#888'
+  };
+
+  let state = {
+    photoIdx: 2,
+    diseases: {},
+    editingId: null,
+    clickX: 0, clickY: 0,
+    hasClicked: false,
+    selected: new Set(),
+    pendingMarks: [], // 批量模式：待确认的标记 [{x, y, toothId}]
+  };
+
+  Object.entries(INITIAL).forEach(([tid,info]) => { state.diseases[tid]={...info}; });
+
+  const $ = s => document.querySelector(s);
+  const dom = {
+    photoCanvas:$('#photoCanvas'), markerLayer:$('#markerLayer'),
+    photoHint:$('#photoHint'), photoGrid:$('#photoGrid'),
+    navCount:$('#navCount'), listCount:$('#listCount'),
+    diseaseGroups:$('#diseaseGroups'),
+    editPanel:$('#editPanel'), epTooth:$('#epTooth'),
+    epToothTrig:$('#epToothTrig'), toothPopup:$('#toothPopup'),
+    epDisease:$('#epDisease'), epSeverity:$('#epSeverity'),
+    epNote:$('#epNote'), epSave:$('#epSave'), epDelete:$('#epDelete'),
+    bbCount:$('#bbCount'), btnBatchDelete:$('#btnBatchDelete'),
+    toast:$('#toast'), mainContent:$('#mainContent'),
+  };
+
+  // 同步牙位选择器UI
+  function syncToothUI(tid) {
+    dom.epToothTrig.textContent = tid ? '#' + tid + ' ▾' : '选择牙位 ▾';
+    dom.toothPopup.querySelectorAll('.tooth-btn').forEach(b => {
+      b.classList.toggle('selected', b.dataset.tooth === tid);
+    });
+  }
+
+  function initSelects() {
+    // 隐藏的原生select（保持值同步）
+    dom.epTooth.innerHTML = '<option value="">选择牙位</option>' +
+      ALL_TEETH.map(t => `<option value="${t}">#${t}</option>`).join('');
+    dom.epDisease.innerHTML = '<option value="">选择疾病</option>' +
+      DISEASE_TYPES.map(d => `<option value="${d}">${d}</option>`).join('');
+
+    // 生成牙位选择器
+    const upperRight = ['18','17','16','15','14','13','12','11'];
+    const upperLeft  = ['21','22','23','24','25','26','27','28'];
+    const lowerRight = ['48','47','46','45','44','43','42','41'];
+    const lowerLeft  = ['31','32','33','34','35','36','37','38'];
+
+    function rowHtml(teeth) {
+      return '<div class="tooth-row">' +
+        teeth.map(t => {
+          const has = state.diseases[t] ? ' has-disease' : '';
+          return `<button class="tooth-btn${has}" data-tooth="${t}">${t}</button>`;
+        }).join('') + '</div>';
+    }
+
+    dom.toothPopup.innerHTML =
+      rowHtml(upperRight) + '<div class="tooth-row"><span class="gap"></span></div>' + rowHtml(upperLeft) +
+      rowHtml(lowerRight) + '<div class="tooth-row"><span class="gap"></span></div>' + rowHtml(lowerLeft);
+
+    // 点击牙位按钮
+    dom.toothPopup.querySelectorAll('.tooth-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const tid = btn.dataset.tooth;
+        dom.epTooth.value = tid;  // setter自动同步UI
+        dom.epTooth.dispatchEvent(new Event('change', { bubbles: true }));
+        dom.toothPopup.classList.remove('show');
+      });
+    });
+
+    // 点击触发器 → 展开/收起
+    dom.epToothTrig.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isOpen = dom.toothPopup.classList.contains('show');
+      // 关所有弹窗
+      document.querySelectorAll('.tooth-popup.show').forEach(p => p.classList.remove('show'));
+      if (!isOpen) {
+        // 计算位置
+        const trigRect = dom.epToothTrig.getBoundingClientRect();
+        const popupW = dom.toothPopup.offsetWidth || 480;
+        // 居中于触发器
+        let left = trigRect.left + trigRect.width / 2 - popupW / 2;
+        // 不超出屏幕
+        if (left < 8) left = 8;
+        if (left + popupW > window.innerWidth - 8) left = window.innerWidth - popupW - 8;
+        // 优先下方，空间不够则上方
+        let top = trigRect.bottom + 6;
+        const popupH = 200;
+        if (top + popupH > window.innerHeight) {
+          top = trigRect.top - popupH - 6;
+        }
+        dom.toothPopup.style.top = top + 'px';
+        dom.toothPopup.style.left = left + 'px';
+        dom.toothPopup.style.transform = 'none';
+        dom.toothPopup.classList.add('show');
+        // 同步选中状态和疾病标记
+        const cur = dom.epTooth.value;
+        dom.toothPopup.querySelectorAll('.tooth-btn').forEach(b => {
+          const t = b.dataset.tooth;
+          b.classList.toggle('selected', t === cur);
+          b.classList.toggle('has-disease', !!state.diseases[t]);
+        });
+      }
+    });
+
+    // 点击外部关闭
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.ep-tooth-wrap')) {
+        dom.toothPopup.classList.remove('show');
+      }
+    });
+
+    // 拦截原生select的value赋值，自动同步UI
+    const origDescriptor = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value');
+    Object.defineProperty(dom.epTooth, 'value', {
+      get() { return origDescriptor.get.call(this); },
+      set(v) {
+        origDescriptor.set.call(this, v);
+        syncToothUI(v);
+        // 同时更新popup里的选中状态
+        dom.toothPopup.querySelectorAll('.tooth-btn').forEach(b => {
+          b.classList.toggle('selected', b.dataset.tooth === v);
+        });
+      }
+    });
+  }
+
+  function renderPhoto() {
+    const p = PHOTOS[state.photoIdx];
+    dom.photoCanvas.style.backgroundImage = p.thumb ? `url(${p.thumb})` : '';
+    dom.photoCanvas.style.backgroundSize = 'cover';
+    dom.photoCanvas.style.backgroundPosition = 'center';
+    dom.markerLayer.innerHTML = '';
+
+    Object.entries(state.diseases).forEach(([tid, info]) => {
+      if (info.photoIdx !== state.photoIdx) return;
+      const el = document.createElement('div');
+      el.className = 'marker' + (state.editingId === tid ? ' editing' : '');
+      el.style.left = info.x + '%'; el.style.top = info.y + '%';
+      el.innerHTML = `<span class="marker-tag">#${tid} ${info.disease}</span>`;
+      el.addEventListener('click', (e) => { e.stopPropagation(); selectDisease(tid); });
+      dom.markerLayer.appendChild(el);
+    });
+
+    // 批量模式：显示所有待确认标记
+    state.pendingMarks.forEach((pm, idx) => {
+      if (pm.photoIdx !== state.photoIdx) return;
+      const pin = document.createElement('div');
+      pin.className = 'marker new';
+      pin.style.left = pm.x + '%'; pin.style.top = pm.y + '%';
+      pin.innerHTML = '<span class="marker-tag">' + (pm.toothId ? '#' + pm.toothId : '标记' + (idx+1)) + '</span>';
+      pin.addEventListener('click', (e) => {
+        e.stopPropagation();
+        // 点击待确认标记：选中编辑
+        state.clickX = pm.x; state.clickY = pm.y;
+        state.hasClicked = true; state.editingId = null;
+        dom.epTooth.value = pm.toothId;
+        dom.epNote.value = '';
+        dom.editPanel.classList.add('show');
+      });
+      dom.markerLayer.appendChild(pin);
+    });
+
+    // 当前点击位置临时标记
+    if (state.hasClicked && !dom.epTooth.value) {
+      const pin = document.createElement('div');
+      pin.className = 'marker new';
+      pin.style.left = state.clickX + '%'; pin.style.top = state.clickY + '%';
+      pin.innerHTML = '<span class="marker-tag">点击的位置</span>';
+      dom.markerLayer.appendChild(pin);
+    }
+  }
+
+  function renderPhotoGrid() {
+    dom.photoGrid.innerHTML = '';
+    PHOTOS.forEach((p, i) => {
+      const el = document.createElement('div');
+      el.className = 'photo-card' + (state.photoIdx === i ? ' active' : '');
+      el.innerHTML = `<img src="${p.thumb}" alt="${p.name}"><span class="photo-label">${i+1}.${p.name.substring(0,4)}</span>`;
+      if (Object.values(state.diseases).some(d => d.photoIdx === i)) {
+        el.innerHTML += '<span class="photo-dot"></span>';
+      }
+      el.addEventListener('click', () => {
+        state.photoIdx = i; resetEditState(); renderAll();
+      });
+      dom.photoGrid.appendChild(el);
+    });
+  }
+
+  function renderDiseaseGroups() {
+    const groups = {};
+    Object.entries(state.diseases).forEach(([tid, info]) => {
+      if (!groups[info.disease]) groups[info.disease] = [];
+      groups[info.disease].push({ tid, ...info });
+    });
+
+    let html = '';
+    const total = Object.keys(state.diseases).length;
+
+    Object.entries(groups).forEach(([disease, items]) => {
+      const color = DISEASE_COLORS[disease] || '#888';
+      // 检查组内项是否全选
+      const allInGroup = items.every(item => state.selected.has(item.tid));
+      const someInGroup = items.some(item => state.selected.has(item.tid));
+      let groupCheckClass = '';
+      if (allInGroup) groupCheckClass = ' checked';
+      else if (someInGroup) groupCheckClass = ' partial';
+
+      html += `<div class="group">`;
+      html += `<div class="group-hd" data-group="${disease}">`;
+      html += `<span class="group-dot" style="background:${color}"></span>`;
+      html += `<div class="group-check${groupCheckClass}" data-group-check="${disease}"></div>`;
+      html += `<span class="group-name">${disease}</span>`;
+      html += `<span class="group-count">${items.length}</span>`;
+      html += `<span class="group-arrow">▾</span></div>`;
+      html += `<div class="group-body">`;
+
+      items.forEach(item => {
+        const sev = item.severity === 'mild' ? '轻度' : item.severity === 'moderate' ? '中度' : '重度';
+        const photo = PHOTOS[item.photoIdx];
+        const checked = state.selected.has(item.tid) ? ' checked' : '';
+        html += `<div class="disease-item">`;
+        html += `<div class="di-check${checked}" data-check="${item.tid}"></div>`;
+        html += `<div class="di-thumb" style="background-image:url(${photo.thumb})"></div>`;
+        html += `<div class="di-info">`;
+        html += `<div class="di-tooth">#${item.tid} <span style="font-size:11px;color:var(--muted);">${sev}</span></div>`;
+        html += `<div class="di-meta">${item.disease}${item.note ? ' · ' + item.note : ''}</div>`;
+        html += `</div>`;
+        html += `<button class="di-btn" data-edit="${item.tid}">修改</button>`;
+        html += `</div>`;
+      });
+
+      html += `</div></div>`;
+    });
+
+    dom.diseaseGroups.innerHTML = html;
+    dom.navCount.textContent = total + '个';
+    dom.listCount.textContent = '共' + total + '项';
+
+    dom.diseaseGroups.querySelectorAll('.group-hd').forEach(head => {
+      head.addEventListener('click', (e) => {
+        // 如果点了勾选框则不折叠
+        if (e.target.closest('.group-check')) return;
+        head.parentElement.classList.toggle('collapsed');
+      });
+    });
+
+    // 分组全选
+    dom.diseaseGroups.querySelectorAll('[data-group-check]').forEach(gc => {
+      gc.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const disease = gc.dataset.groupCheck;
+        const tids = Object.entries(state.diseases)
+          .filter(([, info]) => info.disease === disease)
+          .map(([tid]) => tid);
+        const allSelected = tids.every(t => state.selected.has(t));
+        if (allSelected) {
+          tids.forEach(t => state.selected.delete(t));
+        } else {
+          tids.forEach(t => state.selected.add(t));
+        }
+        updateSelection(); renderDiseaseGroups();
+      });
+    });
+
+    dom.diseaseGroups.querySelectorAll('[data-check]').forEach(check => {
+      check.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const tid = check.dataset.check;
+        state.selected.has(tid) ? state.selected.delete(tid) : state.selected.add(tid);
+        updateSelection(); renderDiseaseGroups();
+      });
+    });
+
+    dom.diseaseGroups.querySelectorAll('[data-edit]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const tid = btn.dataset.edit;
+        const info = state.diseases[tid];
+        state.photoIdx = info.photoIdx;
+        selectDisease(tid); renderAll();
+        dom.photoCanvas.scrollIntoView({ behavior: 'smooth' });
+      });
+    });
+
+    updateSelection();
+  }
+
+  function selectDisease(tid) {
+    state.editingId = tid; state.hasClicked = true;
+    const info = state.diseases[tid];
+    state.clickX = info.x; state.clickY = info.y;
+    dom.epTooth.value = tid;
+    // 批量模式下：保留已锁定的疾病
+    if (!batchMode) {
+      dom.epDisease.value = info.disease;
+      dom.epSeverity.value = info.severity;
+    }
+    dom.epNote.value = info.note || '';
+    dom.epSave.textContent = '✓ 确认修改'; dom.epSave.disabled = false;
+    dom.epDelete.style.display = 'inline-block';
+    dom.editPanel.classList.add('show');
+    dom.photoHint.textContent = '✎ 修改 #' + tid + ' · 可拖拽标记点调整位置';
+  }
+
+  function resetEditState() {
+    state.editingId = null; state.hasClicked = false;
+    state.clickX = 0; state.clickY = 0;
+    dom.epTooth.value = ''; dom.epDisease.value = '';
+    dom.epSeverity.value = 'moderate'; dom.epNote.value = '';
+    dom.epSave.textContent = '请先点击照片标记位置';
+    dom.epSave.disabled = true;
+    dom.epDelete.style.display = 'none';
+    dom.editPanel.classList.remove('show');
+    dom.photoHint.textContent = '点击照片上的牙齿进行标记';
+  }
+
+  dom.photoCanvas.addEventListener('click', (e) => {
+    if (e.target.closest('.marker')) return;
+    const rect = dom.photoCanvas.getBoundingClientRect();
+    state.clickX = ((e.clientX - rect.left) / rect.width) * 100;
+    state.clickY = ((e.clientY - rect.top) / rect.height) * 100;
+    state.hasClicked = true; state.editingId = null;
+    dom.epTooth.value = '';
+    dom.epNote.value = '';
+    if (!batchMode) {
+      dom.epDisease.value = '';
+      dom.epSeverity.value = 'moderate';
+    }
+    dom.epSave.textContent = '请先点击照片标记位置';
+    dom.epSave.disabled = true;
+    dom.epDelete.style.display = 'none';
+    dom.editPanel.classList.add('show');
+    dom.photoHint.textContent = batchMode
+      ? '📍 批量模式 · 疾病已锁定 · 请选择牙位'
+      : '📍 已标记位置 · 请选择牙位和疾病';
+    renderPhoto();
+  });
+
+  dom.epTooth.addEventListener('change', () => {
+    const tid = dom.epTooth.value;
+    if (!tid) { dom.epSave.disabled = true; return; }
+    if (state.diseases[tid] && !batchMode) {
+      const info = state.diseases[tid];
+      state.editingId = tid; state.clickX = info.x; state.clickY = info.y;
+      dom.epDisease.value = info.disease; dom.epSeverity.value = info.severity;
+      dom.epNote.value = info.note || '';
+      dom.epSave.textContent = '✓ 确认修改'; dom.epSave.disabled = false;
+      dom.epDelete.style.display = 'inline-block';
+      dom.photoHint.textContent = '✎ 修改 #' + tid + ' · 已有疾病';
+    } else if (batchMode) {
+      // 批量模式：加入待确认列表
+      state.editingId = tid;
+      dom.epNote.value = '';
+      if (dom.epDisease.value && state.hasClicked) {
+        // 检查是否已在待确认列表中（同牙位则更新位置）
+        const existIdx = state.pendingMarks.findIndex(pm => pm.toothId === tid);
+        if (existIdx >= 0) {
+          state.pendingMarks[existIdx].x = state.clickX;
+          state.pendingMarks[existIdx].y = state.clickY;
+          state.pendingMarks[existIdx].photoIdx = state.photoIdx;
+        } else {
+          state.pendingMarks.push({
+            toothId: tid,
+            x: state.clickX, y: state.clickY,
+            photoIdx: state.photoIdx,
+          });
+        }
+        // 重置，准备下一个标记
+        state.editingId = null; state.hasClicked = false;
+        state.clickX = 0; state.clickY = 0;
+        dom.epTooth.value = '';
+        dom.epNote.value = '';
+        dom.epSave.textContent = '✓ 确认新增 (' + state.pendingMarks.length + '个)';
+        dom.epSave.disabled = false;
+        dom.epDelete.style.display = 'none';
+        dom.photoHint.textContent = '📍 已标记 ' + state.pendingMarks.length + ' 个位置 · 继续点击照片或点确认';
+        renderAll();
+      } else if (!dom.epDisease.value) {
+        dom.epSave.textContent = '请先选择疾病类型'; dom.epSave.disabled = true;
+        dom.photoHint.textContent = '📍 批量模式 · 牙位 #' + tid + ' · 请选择疾病类型';
+      }
+    } else {
+      state.editingId = tid; dom.epDisease.value = '';
+      dom.epSeverity.value = 'moderate'; dom.epNote.value = '';
+      dom.epSave.textContent = '✓ 新增疾病'; dom.epSave.disabled = true;
+      dom.epDelete.style.display = 'none';
+      dom.photoHint.textContent = '📍 牙位 #' + tid + ' · 请选择疾病类型';
+    }
+    renderPhoto();
+  });
+
+  dom.epDisease.addEventListener('change', () => {
+    if (state.hasClicked && dom.epTooth.value && dom.epDisease.value) {
+      dom.epSave.disabled = false;
+    }
+  });
+
+  // 批量模式开关
+  let batchMode = false;
+  dom.epBatch = $('#epBatch');
+  dom.epBatch.addEventListener('click', () => {
+    batchMode = !batchMode;
+    if (batchMode) {
+      dom.epBatch.classList.add('active');
+      dom.epBatch.textContent = '🔘 批量中';
+      dom.photoHint.textContent = '📍 批量模式 · 点击照片标记位置';
+    } else {
+      dom.epBatch.classList.remove('active');
+      dom.epBatch.textContent = '🔘 批量';
+      // 关闭批量 → 清空待确认列表
+      state.pendingMarks = [];
+      dom.epSave.textContent = '请先点击照片标记位置';
+      dom.epSave.disabled = true;
+      resetEditState(); renderAll();
+    }
+  });
+
+  dom.epSave.addEventListener('click', () => {
+    if (batchMode) {
+      // 批量模式：一次性保存所有待确认标记
+      if (state.pendingMarks.length === 0) { showToast('请先标记位置并选择牙位'); return; }
+      const disease = dom.epDisease.value;
+      if (!disease) { showToast('请选择疾病类型'); return; }
+      const severity = dom.epSeverity.value;
+      let count = 0;
+      state.pendingMarks.forEach(pm => {
+        if (!pm.toothId) return;
+        state.diseases[pm.toothId] = {
+          disease, severity,
+          note: '',
+          photoIdx: pm.photoIdx,
+          x: pm.x, y: pm.y,
+        };
+        count++;
+      });
+      showToast('批量新增 ' + count + ' 个 ' + disease);
+      state.pendingMarks = [];
+      dom.epSave.textContent = '请先点击照片标记位置';
+      dom.epSave.disabled = true;
+      resetEditState();
+      renderAll();
+      return;
+    }
+
+    // 普通模式
+    const tid = dom.epTooth.value;
+    if (!tid) { showToast('请选择牙位'); return; }
+    const disease = dom.epDisease.value;
+    if (!disease) { showToast('请选择疾病类型'); return; }
+    const existing = !!state.diseases[tid];
+    state.diseases[tid] = {
+      disease, severity: dom.epSeverity.value,
+      note: dom.epNote.value.trim(), photoIdx: state.photoIdx,
+      x: state.clickX, y: state.clickY,
+    };
+    const sev = dom.epSeverity.value === 'mild' ? '轻度' : dom.epSeverity.value === 'moderate' ? '中度' : '重度';
+    showToast((existing ? '已更新 ' : '已记录 ') + '#' + tid + ' ' + disease + '(' + sev + ')');
+    resetEditState();
+    renderAll();
+  });
+
+  dom.epDelete.addEventListener('click', () => {
+    const tid = dom.epTooth.value;
+    if (!tid || !state.diseases[tid]) return;
+    delete state.diseases[tid]; state.selected.delete(tid);
+    showToast('已移除 #' + tid);
+    resetEditState(); renderAll();
+  });
+
+  $('#btnSelectAll').addEventListener('click', () => {
+    const all = Object.keys(state.diseases);
+    if (state.selected.size === all.length) state.selected.clear();
+    else all.forEach(t => state.selected.add(t));
+    updateSelection(); renderDiseaseGroups();
+  });
+
+  $('#btnBatchDelete').addEventListener('click', () => {
+    if (state.selected.size === 0) return;
+    state.selected.forEach(tid => { delete state.diseases[tid]; });
+    showToast('已删除 ' + state.selected.size + ' 项');
+    state.selected.clear(); resetEditState(); renderAll();
+  });
+
+  $('#btnGenerate').addEventListener('click', () => {
+    const entries = Object.entries(state.diseases);
+    if (entries.length === 0) { showToast('暂无疾病记录'); return; }
+    showToast('报告已更新，共 ' + entries.length + ' 项');
+  });
+
+  function updateSelection() {
+    const count = state.selected.size;
+    dom.bbCount.textContent = '已选 ' + count + ' 项';
+    dom.btnBatchDelete.disabled = count === 0;
+    $('#btnBatchModify').disabled = count < 2;
+  }
+
+  // ====== 批量修改弹窗 ======
+  $('#btnBatchModify').addEventListener('click', () => {
+    if (state.selected.size < 2) return;
+    $('#modifyCount').textContent = '(' + state.selected.size + '项)';
+    // 初始化疾病选项
+    const mDisease = $('#mModDisease');
+    mDisease.innerHTML = '<option value="">保持原疾病</option>' +
+      DISEASE_TYPES.map(d => `<option value="${d}">${d}</option>`).join('');
+    mDisease.value = '';
+    $('#mModSeverity').value = '';
+    $('#modalModify').classList.add('show');
+  });
+
+  $('#btnModCancel').addEventListener('click', () => {
+    $('#modalModify').classList.remove('show');
+  });
+
+  $('#btnModConfirm').addEventListener('click', () => {
+    const newDisease = $('#mModDisease').value;
+    const newSeverity = $('#mModSeverity').value;
+    let count = 0;
+    state.selected.forEach(tid => {
+      if (!state.diseases[tid]) return;
+      if (newDisease) state.diseases[tid].disease = newDisease;
+      if (newSeverity) state.diseases[tid].severity = newSeverity;
+      state.diseases[tid].note = '';
+      count++;
+    });
+    showToast('已批量修改 ' + count + ' 项');
+    state.selected.clear();
+    $('#modalModify').classList.remove('show');
+    resetEditState();
+    renderAll();
+  });
+
+  // 点击弹窗遮罩关闭
+  $('#modalModify').addEventListener('click', (e) => {
+    if (e.target === $('#modalModify')) {
+      $('#modalModify').classList.remove('show');
+    }
+  });
+
+  function renderAll() {
+    renderPhoto(); renderPhotoGrid(); renderDiseaseGroups();
+  }
+
+  // ====== 拖拽标记点 ======
+  let draggingId = null;
+
+  dom.markerLayer.addEventListener('mousedown', (e) => {
+    const pin = e.target.closest('.marker');
+    if (!pin || pin.classList.contains('new')) return;
+    // 找到这个标记点对应的牙位
+    const tag = pin.querySelector('.marker-tag');
+    if (!tag) return;
+    for (const tid of Object.keys(state.diseases)) {
+      if (tag.textContent.indexOf('#' + tid) !== -1) {
+        draggingId = tid;
+        state.editingId = tid;
+        const info = state.diseases[tid];
+        dom.epTooth.value = tid;
+        if (!batchMode) {
+          dom.epDisease.value = info.disease;
+          dom.epSeverity.value = info.severity;
+        }
+        dom.epNote.value = info.note || '';
+        dom.epSave.textContent = '✓ 确认修改';
+        dom.epSave.disabled = false;
+        dom.epDelete.style.display = 'inline-block';
+        dom.editPanel.classList.add('show');
+        dom.photoHint.textContent = '↕ 拖拽中 · #' + tid;
+        e.preventDefault();
+        break;
+      }
+    }
+  });
+
+  window.addEventListener('mousemove', (e) => {
+    if (!draggingId) return;
+    const info = state.diseases[draggingId];
+    if (!info) return;
+    const rect = dom.photoCanvas.getBoundingClientRect();
+    info.x = ((e.clientX - rect.left) / rect.width) * 100;
+    info.y = ((e.clientY - rect.top) / rect.height) * 100;
+    state.clickX = info.x;
+    state.clickY = info.y;
+    renderPhoto();
+  });
+
+  window.addEventListener('mouseup', () => {
+    if (draggingId) {
+      dom.photoHint.textContent = '✎ 已更新 #' + draggingId + ' 位置';
+      draggingId = null;
+    }
+  });
+
+  // Touch 拖拽
+  dom.markerLayer.addEventListener('touchstart', (e) => {
+    const pin = e.target.closest('.marker');
+    if (!pin || pin.classList.contains('new') || e.touches.length !== 1) return;
+    const tag = pin.querySelector('.marker-tag');
+    if (!tag) return;
+    for (const tid of Object.keys(state.diseases)) {
+      if (tag.textContent.indexOf('#' + tid) !== -1) {
+        draggingId = tid;
+        state.editingId = tid;
+        const info = state.diseases[tid];
+        dom.epTooth.value = tid;
+        if (!batchMode) {
+          dom.epDisease.value = info.disease;
+          dom.epSeverity.value = info.severity;
+        }
+        dom.epNote.value = info.note || '';
+        dom.epSave.textContent = '✓ 确认修改';
+        dom.epSave.disabled = false;
+        dom.epDelete.style.display = 'inline-block';
+        dom.editPanel.classList.add('show');
+        dom.photoHint.textContent = '↕ 拖拽中 · #' + tid;
+        e.preventDefault();
+        break;
+      }
+    }
+  }, { passive: false });
+
+  window.addEventListener('touchmove', (e) => {
+    if (!draggingId || e.touches.length !== 1) return;
+    const info = state.diseases[draggingId];
+    if (!info) return;
+    const rect = dom.photoCanvas.getBoundingClientRect();
+    info.x = ((e.touches[0].clientX - rect.left) / rect.width) * 100;
+    info.y = ((e.touches[0].clientY - rect.top) / rect.height) * 100;
+    state.clickX = info.x;
+    state.clickY = info.y;
+    renderPhoto();
+  });
+
+  window.addEventListener('touchend', () => {
+    if (draggingId) {
+      dom.photoHint.textContent = '✎ 已更新 #' + draggingId + ' 位置';
+      draggingId = null;
+    }
+  });
+
+  let toastTimer;
+  function showToast(msg) {
+    dom.toast.textContent = msg; dom.toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => dom.toast.classList.remove('show'), 1800);
+  }
+
+  initSelects(); resetEditState(); renderAll();
+})();
+</script>
+</body>
+</html>
