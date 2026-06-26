@@ -129,7 +129,7 @@
 
   /* ====== 照片预览网格 ====== */
   .preview-grid {
-    display: grid; grid-template-columns: repeat(4, 1fr);
+    display: grid; grid-template-columns: repeat(6, 1fr);
     gap: 10px;
   }
   .photo-card {
@@ -137,6 +137,13 @@
     background: #efefef; height: 100px;
     box-shadow: 0 10px 24px rgba(0,0,0,.18); cursor: pointer;
     border: 2px solid transparent;
+  }
+  /* 2-3-3 排列：所有照片等宽，第1行2张居中 */
+  .preview-grid .photo-card {
+    grid-column: span 2;
+  }
+  .preview-grid .photo-card:nth-child(1) {
+    grid-column: 2 / span 2;
   }
   .photo-card.active { border-color: rgba(213,223,29,.95); }
   .photo-card img {
@@ -718,22 +725,30 @@
       pin.innerHTML = '<span class="marker-tag">' + (pm.toothId ? '#' + pm.toothId : '标记' + (idx+1)) + '</span>';
       pin.addEventListener('click', (e) => {
         e.stopPropagation();
-        // 点击待确认标记：选中编辑
-        state.clickX = pm.x; state.clickY = pm.y;
-        state.hasClicked = true; state.editingId = null;
-        dom.epTooth.value = pm.toothId;
-        dom.epNote.value = '';
-        dom.editPanel.classList.add('show');
+        // 点击待确认标记：移除该标记
+        if (confirm('移除 #' + pm.toothId + ' 的待确认标记？')) {
+          state.pendingMarks.splice(idx, 1);
+          dom.epSave.textContent = state.pendingMarks.length > 0
+            ? '✓ 确认新增 (' + state.pendingMarks.length + '个)'
+            : '请先点击照片标记位置';
+          dom.epSave.disabled = state.pendingMarks.length === 0;
+          if (state.pendingMarks.length === 0) {
+            dom.photoHint.textContent = '📍 批量模式 · 点击照片标记位置';
+          } else {
+            dom.photoHint.textContent = '📍 已标记 ' + state.pendingMarks.length + ' 个位置 · 继续或点确认';
+          }
+          renderAll();
+        }
       });
       dom.markerLayer.appendChild(pin);
     });
 
     // 当前点击位置临时标记
-    if (state.hasClicked && !dom.epTooth.value) {
+    if (state.hasClicked && !state.diseases[dom.epTooth.value || '']) {
       const pin = document.createElement('div');
       pin.className = 'marker new';
       pin.style.left = state.clickX + '%'; pin.style.top = state.clickY + '%';
-      pin.innerHTML = '<span class="marker-tag">点击的位置</span>';
+      pin.innerHTML = '<span class="marker-tag">' + (dom.epTooth.value ? '#' + dom.epTooth.value : '点击的位置') + '</span>';
       dom.markerLayer.appendChild(pin);
     }
   }
@@ -743,7 +758,8 @@
     PHOTOS.forEach((p, i) => {
       const el = document.createElement('div');
       el.className = 'photo-card' + (state.photoIdx === i ? ' active' : '');
-      el.innerHTML = `<img src="${p.thumb}" alt="${p.name}"><span class="photo-label">${i+1}.${p.name.substring(0,4)}</span>`;
+      const labelName = (i === 0 || i === 7) ? p.name : p.name.substring(0,4);
+      el.innerHTML = `<img src="${p.thumb}" alt="${p.name}"><span class="photo-label">${i+1}.${labelName}</span>`;
       if (Object.values(state.diseases).some(d => d.photoIdx === i)) {
         el.innerHTML += '<span class="photo-dot"></span>';
       }
@@ -763,6 +779,14 @@
 
     let html = '';
     const total = Object.keys(state.diseases).length;
+
+    if (total === 0) {
+      html = `<div style="text-align:center;padding:28px 14px;color:var(--muted);">
+        <div style="font-size:28px;margin-bottom:10px;">🦷</div>
+        <div style="font-size:13px;font-weight:600;margin-bottom:4px;">暂无疾病记录</div>
+        <div style="font-size:11px;">点击照片标记位置，选择牙位添加疾病</div>
+      </div>`;
+    }
 
     Object.entries(groups).forEach(([disease, items]) => {
       const color = DISEASE_COLORS[disease] || '#888';
@@ -919,33 +943,13 @@
       // 批量模式：加入待确认列表
       state.editingId = tid;
       dom.epNote.value = '';
-      if (dom.epDisease.value && state.hasClicked) {
-        // 检查是否已在待确认列表中（同牙位则更新位置）
-        const existIdx = state.pendingMarks.findIndex(pm => pm.toothId === tid);
-        if (existIdx >= 0) {
-          state.pendingMarks[existIdx].x = state.clickX;
-          state.pendingMarks[existIdx].y = state.clickY;
-          state.pendingMarks[existIdx].photoIdx = state.photoIdx;
-        } else {
-          state.pendingMarks.push({
-            toothId: tid,
-            x: state.clickX, y: state.clickY,
-            photoIdx: state.photoIdx,
-          });
+      if (!pushPendingMark()) {
+        if (!dom.epDisease.value) {
+          dom.epSave.textContent = '请先选择疾病类型'; dom.epSave.disabled = true;
+          dom.photoHint.textContent = '📍 批量模式 · 牙位 #' + tid + ' · 请选择疾病类型';
+        } else if (!state.hasClicked) {
+          dom.photoHint.textContent = '📍 批量模式 · 牙位 #' + tid + ' · 请点击照片标记位置';
         }
-        // 重置，准备下一个标记
-        state.editingId = null; state.hasClicked = false;
-        state.clickX = 0; state.clickY = 0;
-        dom.epTooth.value = '';
-        dom.epNote.value = '';
-        dom.epSave.textContent = '✓ 确认新增 (' + state.pendingMarks.length + '个)';
-        dom.epSave.disabled = false;
-        dom.epDelete.style.display = 'none';
-        dom.photoHint.textContent = '📍 已标记 ' + state.pendingMarks.length + ' 个位置 · 继续点击照片或点确认';
-        renderAll();
-      } else if (!dom.epDisease.value) {
-        dom.epSave.textContent = '请先选择疾病类型'; dom.epSave.disabled = true;
-        dom.photoHint.textContent = '📍 批量模式 · 牙位 #' + tid + ' · 请选择疾病类型';
       }
     } else {
       state.editingId = tid; dom.epDisease.value = '';
@@ -960,6 +964,8 @@
   dom.epDisease.addEventListener('change', () => {
     if (state.hasClicked && dom.epTooth.value && dom.epDisease.value) {
       dom.epSave.disabled = false;
+      // 批量模式：自动将当前标记加入待确认列表
+      if (batchMode) { pushPendingMark(); }
     }
   });
 
@@ -982,6 +988,35 @@
       resetEditState(); renderAll();
     }
   });
+
+  // 批量模式：尝试将当前(点击位置+牙位+疾病)推入待确认列表
+  function pushPendingMark() {
+    if (!batchMode) return false;
+    const tid = dom.epTooth.value;
+    if (!tid || !dom.epDisease.value || !state.hasClicked) return false;
+    const existIdx = state.pendingMarks.findIndex(pm => pm.toothId === tid);
+    if (existIdx >= 0) {
+      state.pendingMarks[existIdx].x = state.clickX;
+      state.pendingMarks[existIdx].y = state.clickY;
+      state.pendingMarks[existIdx].photoIdx = state.photoIdx;
+    } else {
+      state.pendingMarks.push({
+        toothId: tid,
+        x: state.clickX, y: state.clickY,
+        photoIdx: state.photoIdx,
+      });
+    }
+    state.editingId = null; state.hasClicked = false;
+    state.clickX = 0; state.clickY = 0;
+    dom.epTooth.value = '';
+    dom.epNote.value = '';
+    dom.epSave.textContent = '✓ 确认新增 (' + state.pendingMarks.length + '个)';
+    dom.epSave.disabled = false;
+    dom.epDelete.style.display = 'none';
+    dom.photoHint.textContent = '📍 已标记 ' + state.pendingMarks.length + ' 个位置 · 继续点击照片或点确认';
+    renderAll();
+    return true;
+  }
 
   dom.epSave.addEventListener('click', () => {
     if (batchMode) {
@@ -1030,6 +1065,7 @@
   dom.epDelete.addEventListener('click', () => {
     const tid = dom.epTooth.value;
     if (!tid || !state.diseases[tid]) return;
+    if (!confirm('确认删除 #' + tid + ' ' + state.diseases[tid].disease + '？')) return;
     delete state.diseases[tid]; state.selected.delete(tid);
     showToast('已移除 #' + tid);
     resetEditState(); renderAll();
@@ -1044,6 +1080,7 @@
 
   $('#btnBatchDelete').addEventListener('click', () => {
     if (state.selected.size === 0) return;
+    if (!confirm('确认删除已选的 ' + state.selected.size + ' 项疾病记录？')) return;
     state.selected.forEach(tid => { delete state.diseases[tid]; });
     showToast('已删除 ' + state.selected.size + ' 项');
     state.selected.clear(); resetEditState(); renderAll();
