@@ -633,8 +633,7 @@
     dom.toothPopup.querySelectorAll('.tooth-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         const tid = btn.dataset.tooth;
-        dom.epTooth.value = tid;  // setter自动同步UI
-        dom.epTooth.dispatchEvent(new Event('change', { bubbles: true }));
+        dom.epTooth.value = tid;  // setter自动触发change事件
         dom.toothPopup.classList.remove('show');
       });
     });
@@ -931,15 +930,12 @@
   dom.epTooth.addEventListener('change', () => {
     const tid = dom.epTooth.value;
     if (!tid) { dom.epSave.disabled = true; return; }
-    if (state.diseases[tid] && !batchMode) {
-      const info = state.diseases[tid];
-      state.editingId = tid; state.clickX = info.x; state.clickY = info.y;
-      dom.epDisease.value = info.disease; dom.epSeverity.value = info.severity;
-      dom.epNote.value = info.note || '';
-      dom.epSave.textContent = '✓ 确认修改'; dom.epSave.disabled = false;
-      dom.epDelete.style.display = 'inline-block';
-      dom.photoHint.textContent = '✎ 修改 #' + tid + ' · 已有疾病';
-    } else if (batchMode) {
+
+    const isEditing = !!(state.editingId && state.diseases[state.editingId]);
+    const newHasDisease = !!state.diseases[tid];
+    const toothChanged = (state.editingId !== tid);
+
+    if (batchMode) {
       // 批量模式：加入待确认列表
       state.editingId = tid;
       dom.epNote.value = '';
@@ -951,7 +947,27 @@
           dom.photoHint.textContent = '📍 批量模式 · 牙位 #' + tid + ' · 请点击照片标记位置';
         }
       }
+    } else if (isEditing && toothChanged) {
+      // 编辑中切换牙位 → 保留当前选项，只更新牙位和坐标
+      state.editingId = tid;
+      if (newHasDisease) {
+        state.clickX = state.diseases[tid].x;
+        state.clickY = state.diseases[tid].y;
+      }
+      dom.epSave.textContent = '✓ 确认修改'; dom.epSave.disabled = false;
+      dom.epDelete.style.display = 'inline-block';
+      dom.photoHint.textContent = '✎ 修改 #' + tid + ' · 选项已保留';
+    } else if (newHasDisease) {
+      // 加载已有疾病
+      const info = state.diseases[tid];
+      state.editingId = tid; state.clickX = info.x; state.clickY = info.y;
+      dom.epDisease.value = info.disease; dom.epSeverity.value = info.severity;
+      dom.epNote.value = info.note || '';
+      dom.epSave.textContent = '✓ 确认修改'; dom.epSave.disabled = false;
+      dom.epDelete.style.display = 'inline-block';
+      dom.photoHint.textContent = '✎ 修改 #' + tid + ' · 已有疾病';
     } else {
+      // 新增疾病
       state.editingId = tid; dom.epDisease.value = '';
       dom.epSeverity.value = 'moderate'; dom.epNote.value = '';
       dom.epSave.textContent = '✓ 新增疾病'; dom.epSave.disabled = true;
